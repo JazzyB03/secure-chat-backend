@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+    - "8000:8000"
+    volumes:
+    - ./src:/app/src
+    environment:
+    # We tell Python to look for the database container named 'db'
+      - DATABASE_URL=postgresql+asyncpg://postgres:secretpassword@db:5432/chatdb
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secretpassword
+      - POSTGRES_DB=chatdb
+    ports:
+      - "5432:5432"
+    volumes:
+      # This ensures database information stays saved even if the container stops
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

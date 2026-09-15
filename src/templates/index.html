@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Real-Time Chat Workspace</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bubble-me: #2563eb;
+            --bubble-them: #475569;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            background-color: var(--bg-main); 
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        /* Top Header Panel */
+        header {
+            padding: 20px;
+            background: #111827;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 { font-size: 1.25rem; font-weight: 600; color: #fff; }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: #1f2937;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #374151;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--danger);
+            border-radius: 50%;
+        }
+        .status-dot.online { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* Auth Panel Grid Layout */
+        .auth-bar {
+            padding: 16px 20px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        input {
+            background: var(--bg-input);
+            border: 1px solid #475569;
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+        input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) { background: var(--primary-hover); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Chat History Panel Layout */
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: #0f172a;
+        }
+
+        /* Message Bubble Design Wrapper */
+        .msg-row { display: flex; flex-direction: column; max-width: 75%; width: fit-content; }
+        .msg-row.me { align-self: flex-end; align-items: flex-end; }
+        .msg-row.them { align-self: flex-start; align-items: flex-start; }
+
+        .msg-username { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; padding: 0 4px; }
+        
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .me .bubble { background: var(--bubble-me); color: #fff; border-bottom-right-radius: 4px; }
+        .them .bubble { background: var(--bubble-them); color: var(--text-main); border-bottom-left-radius: 4px; }
+
+        .system-msg {
+            align-self: center;
+            background: #1e293b;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            font-style: italic;
+            margin: 6px 0;
+        }
+
+        /* Footer Input Field Block */
+        footer {
+            padding: 16px 20px;
+            background: #111827;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 12px;
+        }
+        footer input { flex: 1; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h2>Based Gamer Chat</h2>
+        <div class="status-badge">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText">Offline</span>
+        </div>
+    </header>
+    
+    <div class="auth-bar">
+        <input type="text" id="username" placeholder="Username" value="User">
+        <input type="text" id="roomId" placeholder="Room ID" value="room1">
+        
+        <!-- Upgraded password input container wrapper with a text button toggle inside -->
+        <div style="position: relative; display: flex; align-items: center; width: 100%;">
+            <input type="password" id="password" placeholder="Room Password" value="password123" style="width: 100%; padding-right: 60px;">
+            <span id="togglePasswordText" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; user-select: none; font-weight: 600;">Show</span>
+        </div>
+
+        <button id="connectBtn" onclick="connectToChat()">Join Room</button>
+    </div>
+
+    <div id="messages">
+        <div class="system-msg">Awaiting secure workspace authentication details...</div>
+    </div>
+
+    <footer>
+        <input type="text" id="messageInput" placeholder="Type an encrypted message..." disabled onkeypress="handleKeyPress(event)">
+        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+    </footer>
+</div>
+
+<script>
+    let ws = null;
+    let currentUsername = "";
+
+    async function connectToChat() {
+        const username = document.getElementById('username').value.trim();
+        const roomId = document.getElementById('roomId').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!username || !roomId || !password) {
+            alert("Please supply Username, Room ID, and Password entries.");
+            return;
+        }
+
+        currentUsername = username;
+
+        try {
+            const response = await fetch('/api/auth-room', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, room_id: roomId, password })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                alert(errData.detail || "Authentication entry validation failed.");
+                return;
+            }
+
+            const data = await response.json();
+            const token = data.token;
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const backendHost = window.location.host; 
+            
+            ws = new WebSocket(`${protocol}//${backendHost}/ws/${roomId}?token=${token}`);
+
+            ws.onopen = function() {
+                document.getElementById('messages').innerHTML = ""; // Clear initial state status message
+                appendSystemMessage(`Authorized entry confirmed into: ${roomId}`);
+                
+                // Toggle status indicators to active tracking configurations
+                document.getElementById('statusDot').className = "status-dot online";
+                document.getElementById('statusText').innerText = `Online - ${roomId}`;
+                
+                // Toggle accessibility layers
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('connectBtn').innerText = "Authorized";
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('username').disabled = true;
+                document.getElementById('roomId').disabled = true;
+                document.getElementById('password').disabled = true;
+                document.getElementById('messageInput').focus();
+            };
+
+            ws.onmessage = function(event) {
+                parseAndAppendMessage(event.data);
+            };
+
+            ws.onclose = function(event) {
+                document.getElementById('statusDot').className = "status-dot";
+                document.getElementById('statusText').innerText = "Offline";
+                appendSystemMessage("Disconnected from secure server session pipeline.");
+                
+                document.getElementById('messageInput').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+                document.getElementById('connectBtn').innerText = "Join Room";
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('username').disabled = false;
+                document.getElementById('roomId').disabled = false;
+                document.getElementById('password').disabled = false;
+            };
+
+        } catch (err) {
+            console.error(err);
+            alert("Could not build a handshake pipeline link to auth gateway.");
+        }
+    }
+
+   
+    function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+    }
+
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('password');
+        const toggleText = document.getElementById('togglePasswordText');
+        
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            toggleText.innerText = "Hide";
+            toggleText.style.color = "var(--primary)"; // Makes it look active
+        } else {
+            passwordInput.type = "password";
+            toggleText.innerText = "Show";
+            toggleText.style.color = "var(--text-muted)";
+        }
+    }
+
+</script>
