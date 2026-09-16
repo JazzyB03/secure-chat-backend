@@ -40,16 +40,11 @@ async def lifespan(app: FastAPI):
 # Currently will pass the lifespan context directly into FastAPI
 app = FastAPI(title="Real-Time Chat Backend", lifespan=lifespan)
 
-origins = [
-    "http://localhost:8000", 
-    "http://127.0.0.1:8000",
-    "secure-chat-backend-production-ddf2.up.railway.app"
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Allows traffic from any public web browser address link
-    allow_credentials=True,
+    allow_origins=["*"], # Allows traffic from any public web browser address link
+    allow_credentials=False,
     allow_methods=["*"], # Allows POST, GET, OPTIONS, etc.
     allow_headers=["*"],
 )
