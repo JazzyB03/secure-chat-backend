@@ -2,22 +2,29 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-# Pull the DB connection string from the docker environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:secretpassword@localhost:5432/chatdb")
+# 1. Fetch the raw environment variable string
+RAW_DB_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:secretpassword@db:5432/chatdb")
 
+# 2. FIX: Auto-adjust driver prefix formatting for asyncpg compliance if needed
+if RAW_DB_URL.startswith("postgresql://"):
+    DATABASE_URL = RAW_DB_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+else:
+    DATABASE_URL = RAW_DB_URL
+
+# 3. Handle SSL connection arguments conditionally
 if "localhost" in DATABASE_URL or "@db:" in DATABASE_URL:
-    # Local setup
     connect_args = {}
 else:
-    # Cloud setup (Railway production database)
     connect_args = {"ssl": "require"}
 
-# Create the async engine
-engine = create_async_engine(DATABASE_URL, echo=True, connect_args=connect_args)
+# 4. Create the async engine with correct protocols
+engine = create_async_engine(
+    DATABASE_URL, 
+    echo=True,
+    connect_args=connect_args
+)
 
-# Create a session factory to handle short-lived database queries
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 
-# Base class used to declare database structure profiles
 class Base(DeclarativeBase):
     pass
