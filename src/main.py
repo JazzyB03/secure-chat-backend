@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from typing import List, Dict
 import os
@@ -38,6 +39,14 @@ async def lifespan(app: FastAPI):
 
 # Currently will pass the lifespan context directly into FastAPI
 app = FastAPI(title="Real-Time Chat Backend", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allows traffic from any public web browser address link
+    allow_credentials=True,
+    allow_methods=["*"], # Allows POST, GET, OPTIONS, etc.
+    allow_headers=["*"],
+)
 
 class ChatRoomManager:
     def __init__(self):
