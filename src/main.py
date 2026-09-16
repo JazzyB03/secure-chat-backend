@@ -1,14 +1,10 @@
-import sys
-import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Query
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from typing import List, Dict
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
-
-# Database imports
+#Database imports
 from src.database import engine, Base, AsyncSessionLocal
 from src.models import ChatMessage, ChatRoom
 from src.auth import hash_password, verify_password, create_room_token, decode_room_token
@@ -17,32 +13,9 @@ from pydantic import BaseModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # This block executes BEFORE the server starts accepting web traffic
-    # Retry loop to wait for PostgreSQL to fully boot up
-    retries = 10
-    delay = 3
-
-    while retries > 0:
-        try:
-            print(f"🔄 Attempting database handshake ({retries} retries left)...", flush=True)
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            print("✅ Database Tables successfully verified/created!")
-            break  # Exit loop on success
-        except Exception as e:
-            retries -= 1
-            print(f"⚠️ Database not ready yet ({retries} retries left)... Waiting 2 seconds.")
-            print(f"⏳ Waiting {delay} seconds before trying again...", flush=True)
-            await asyncio.sleep(2)
-            
-            if retries == 0:
-                print("❌ [CRITICAL] Cloud database connection failed completely!", flush=True)
-                sys.exit(1) # Forcefully tell Railway why the server failed to start up
-    
-    yield  # Hand over control to FastAPI to start serving web traffic
-    
-    # Optional, probably do later: Put any database shutdown/cleanup code here if needed
-    print("😴 Shutting down application...")
+    print("🚀 [STARTUP] Secure Chat Engine booted up instantly!", flush=True)
+    yield
+    print("😴 [SHUTDOWN] Clean shutdown complete.", flush=True)
 
 # Currently will pass the lifespan context directly into FastAPI
 app = FastAPI(title="Real-Time Chat Backend", lifespan=lifespan)
@@ -129,7 +102,16 @@ async def auth_room(data: AuthRequest):
 
     # 4. Issue token upon verification success
     token = create_room_token(username=data.username, room_id=data.room_id)
-    return {"token": token}    
+    return {"token": token}  
+
+@app.get("/init-db")
+async def initialize_database():
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        return {"status": "success", "message": "Database tables built/verified successfully!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database build failed: {str(e)}")  
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
