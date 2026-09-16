@@ -217,7 +217,7 @@
         currentUsername = username;
 
         try {
-            const response = await fetch('/api/auth-room', {
+            const response = await fetch(`${window.location.origin}/api/auth-room`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, room_id: roomId, password })
