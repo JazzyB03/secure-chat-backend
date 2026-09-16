@@ -1,3 +1,4 @@
+import sys
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Query
@@ -18,9 +19,12 @@ from pydantic import BaseModel
 async def lifespan(app: FastAPI):
     # This block executes BEFORE the server starts accepting web traffic
     # Retry loop to wait for PostgreSQL to fully boot up
-    retries = 5
+    retries = 10
+    delay = 3
+
     while retries > 0:
         try:
+            print(f"🔄 Attempting database handshake ({retries} retries left)...", flush=True)
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             print("✅ Database Tables successfully verified/created!")
@@ -28,9 +32,12 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             retries -= 1
             print(f"⚠️ Database not ready yet ({retries} retries left)... Waiting 2 seconds.")
+            print(f"⏳ Waiting {delay} seconds before trying again...", flush=True)
             await asyncio.sleep(2)
+            
             if retries == 0:
-                print(f"❌ DATABASE STARTUP CRITICAL ERROR: {e}")
+                print("❌ [CRITICAL] Cloud database connection failed completely!", flush=True)
+                sys.exit(1) # Forcefully tell Railway why the server failed to start up
     
     yield  # Hand over control to FastAPI to start serving web traffic
     
