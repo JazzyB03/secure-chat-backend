@@ -239,7 +239,7 @@
 
             ws.onopen = function() {
                 document.getElementById('messages').innerHTML = ""; // Clear initial state status message
-                appendSystemMessage(`Authorized entry confirmed into: ${roomId}`);
+                parseAndAppendMessage("Authorized entry confirmed into: " + roomId);
                 
                 // Toggle status indicators to active tracking configurations
                 document.getElementById('statusDot').className = "status-dot online";
@@ -263,7 +263,7 @@
             ws.onclose = function(event) {
                 document.getElementById('statusDot').className = "status-dot";
                 document.getElementById('statusText').innerText = "Offline";
-                appendSystemMessage("Disconnected from secure server session pipeline.");
+                parseAndAppendMessage("Disconnected from secure server session pipeline.");
                 
                 document.getElementById('messageInput').disabled = true;
                 document.getElementById('sendBtn').disabled = true;
