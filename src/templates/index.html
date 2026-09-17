@@ -204,6 +204,21 @@
     let ws = null;
     let currentUsername = "";
 
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('password');
+        const toggleText = document.getElementById('togglePasswordText');
+        
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            toggleText.innerText = "Hide";
+            toggleText.style.color = "var(--primary)";
+        } else {
+            passwordInput.type = "password";
+            toggleText.innerText = "Show";
+            toggleText.style.color = "var(--text-muted)";
+        }
+    }
+
     async function connectToChat() {
         const username = document.getElementById('username').value.trim();
         const roomId = document.getElementById('roomId').value.trim();
@@ -219,7 +234,10 @@
         try {
             const response = await fetch(`${window.location.origin}/api/auth-room`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ username, room_id: roomId, password })
             });
 
@@ -239,7 +257,7 @@
 
             ws.onopen = function() {
                 document.getElementById('messages').innerHTML = ""; // Clear initial state status message
-                parseAndAppendMessage("Authorized entry confirmed into: " + roomId);
+                appendSystemMessage(`Authorized entry confirmed into: ${roomId}`);
                 
                 // Toggle status indicators to active tracking configurations
                 document.getElementById('statusDot').className = "status-dot online";
@@ -257,13 +275,45 @@
             };
 
             ws.onmessage = function(event) {
-                parseAndAppendMessage(event.data);
+                const messagesDiv = document.getElementById('messages');
+                const rawData = event.data;
+                
+                // Handle standalone system warnings/notifications safely
+                if (!rawData.includes("]: ")) {
+                    appendSystemMessage(rawData);
+                    return;
+                }
+
+                // Parse user messages
+                const parts = rawData.split("]: ", 1);
+                const sender = parts[0].replace("[", "");
+                const text = rawData.substring(rawData.indexOf("]: ") + 3);
+                
+                const isMe = (sender === currentUsername);
+
+                const msgRow = document.createElement('div');
+                msgRow.className = `msg-row ${isMe ? 'me' : 'them'}`;
+
+                if (!isMe) {
+                    const userLabel = document.createElement('div');
+                    userLabel.className = 'msg-username';
+                    userLabel.innerText = sender;
+                    msgRow.appendChild(userLabel);
+                }
+
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.innerText = text;
+                
+                msgRow.appendChild(bubble);
+                messagesDiv.appendChild(msgRow);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             };
 
             ws.onclose = function(event) {
                 document.getElementById('statusDot').className = "status-dot";
                 document.getElementById('statusText').innerText = "Offline";
-                parseAndAppendMessage("Disconnected from secure server session pipeline.");
+                appendSystemMessage("Disconnected from secure server session pipeline.");
                 
                 document.getElementById('messageInput').disabled = true;
                 document.getElementById('sendBtn').disabled = true;
@@ -280,24 +330,29 @@
         }
     }
 
-   
     function sendMessage() {
         const messageInput = document.getElementById('messageInput');
-    }
+        const text = messageInput.value.trim();
 
-    function togglePasswordVisibility() {
-        const passwordInput = document.getElementById('password');
-        const toggleText = document.getElementById('togglePasswordText');
-        
-        if (passwordInput.type === "password") {
-            passwordInput.type = "text";
-            toggleText.innerText = "Hide";
-            toggleText.style.color = "var(--primary)"; // Makes it look active
-        } else {
-            passwordInput.type = "password";
-            toggleText.innerText = "Show";
-            toggleText.style.color = "var(--text-muted)";
+        if (text && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(`[${currentUsername}]: ${text}`);
+            messageInput.value = '';
+            messageInput.focus();
         }
     }
 
+    function appendSystemMessage(text) {
+        const messagesDiv = document.getElementById('messages');
+        const systemEl = document.createElement('div');
+        systemEl.className = 'system-msg';
+        systemEl.innerText = text;
+        messagesDiv.appendChild(systemEl);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
 </script>
