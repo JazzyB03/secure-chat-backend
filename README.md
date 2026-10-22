@@ -2,7 +2,7 @@
 
 A production-ready, fully containerized real-time chat application built using an asynchronous Python backend, a secure JWT authorization gateway, and persistent PostgreSQL storage. 
 
-** Live Demo Link:** [secure-chat-backend-production-fe14.up.railway.app]
+** Live Demo Link:** Due to expiration of the free trial there is no public example until I can find a new one. 
 
 ---
 
